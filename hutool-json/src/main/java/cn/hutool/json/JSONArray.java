@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.RandomAccess;
 
-import static cn.hutool.json.JSONConverter.*;
+import static cn.hutool.json.JSONConverter.jsonConvert;
 
 /**
  * JSON数组<br>
@@ -520,11 +520,7 @@ public class JSONArray implements JSON, JSONGetter<Integer>, List<Object>, Rando
 	 */
 	@Override
 	public String toString() {
-		try {
-			return this.toJSONString(0);
-		} catch (Exception e) {
-			return null;
-		}
+		return this.toJSONString(0);
 	}
 
 	@Override

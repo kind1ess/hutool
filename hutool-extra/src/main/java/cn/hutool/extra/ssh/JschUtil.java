@@ -6,13 +6,7 @@ import cn.hutool.core.lang.Assert;
 import cn.hutool.core.net.LocalPortGenerater;
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.StrUtil;
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelExec;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.ChannelShell;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
+import com.jcraft.jsch.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -85,9 +79,24 @@ public class JschUtil {
 	 * @return SSH会话
 	 */
 	public static Session openSession(String sshHost, int sshPort, String sshUser, String sshPass) {
+		return openSession(sshHost, sshPort, sshUser, sshPass, 0);
+	}
+
+	/**
+	 * 打开一个新的SSH会话
+	 *
+	 * @param sshHost 主机
+	 * @param sshPort 端口
+	 * @param sshUser 用户名
+	 * @param sshPass 密码
+	 * @param timeout Socket连接超时时长，单位毫秒
+	 * @return SSH会话
+	 * @since 5.3.3
+	 */
+	public static Session openSession(String sshHost, int sshPort, String sshUser, String sshPass, int timeout) {
 		final Session session = createSession(sshHost, sshPort, sshUser, sshPass);
 		try {
-			session.connect();
+			session.connect(timeout);
 		} catch (JSchException e) {
 			throw new JschRuntimeException(e);
 		}
@@ -124,7 +133,7 @@ public class JschUtil {
 	 * @return SSH会话
 	 * @since 4.5.2
 	 */
-	public static Session createSession(String sshHost, int sshPort, String sshUser, String sshPass) {
+		public static Session createSession(String sshHost, int sshPort, String sshUser, String sshPass) {
 		final JSch jsch = new JSch();
 		final Session session = createSession(jsch, sshHost, sshPort, sshUser);
 
@@ -218,6 +227,31 @@ public class JschUtil {
 	}
 
 	/**
+	 * 绑定ssh服务端的serverPort端口, 到host主机的port端口上. <br>
+	 * 即数据从ssh服务端的serverPort端口, 流经ssh客户端, 达到host:port上.
+	 *
+	 * @param session  与ssh服务端建立的会话
+	 * @param bindPort ssh服务端上要被绑定的端口
+	 * @param host     转发到的host
+	 * @param port     host上的端口
+	 * @return 成功与否
+	 * @throws JschRuntimeException 端口绑定失败异常
+	 * @since 5.4.2
+	 */
+	public static boolean bindRemotePort(Session session, int bindPort, String host, int port) throws JschRuntimeException {
+		if (session != null && session.isConnected()) {
+			try {
+				session.setPortForwardingR(bindPort, host, port);
+			} catch (JSchException e) {
+				throw new JschRuntimeException(e, "From [{}] mapping to [{}] error！", bindPort, port);
+			}
+			return true;
+		}
+		return false;
+	}
+
+
+	/**
 	 * 解除端口映射
 	 *
 	 * @param session   需要解除端口映射的SSH会话
@@ -257,7 +291,19 @@ public class JschUtil {
 	 * @since 4.0.3
 	 */
 	public static ChannelSftp openSftp(Session session) {
-		return (ChannelSftp) openChannel(session, ChannelType.SFTP);
+		return openSftp(session, 0);
+	}
+
+	/**
+	 * 打开SFTP连接
+	 *
+	 * @param session Session会话
+	 * @param timeout 连接超时时长，单位毫秒
+	 * @return {@link ChannelSftp}
+	 * @since 5.3.3
+	 */
+	public static ChannelSftp openSftp(Session session, int timeout) {
+		return (ChannelSftp) openChannel(session, ChannelType.SFTP, timeout);
 	}
 
 	/**
@@ -305,9 +351,22 @@ public class JschUtil {
 	 * @since 4.5.2
 	 */
 	public static Channel openChannel(Session session, ChannelType channelType) {
+		return openChannel(session, channelType, 0);
+	}
+
+	/**
+	 * 打开Channel连接
+	 *
+	 * @param session     Session会话
+	 * @param channelType 通道类型，可以是shell或sftp等，见{@link ChannelType}
+	 * @param timeout     连接超时时长，单位毫秒
+	 * @return {@link Channel}
+	 * @since 5.3.3
+	 */
+	public static Channel openChannel(Session session, ChannelType channelType, int timeout) {
 		final Channel channel = createChannel(session, channelType);
 		try {
-			channel.connect();
+			channel.connect(Math.max(timeout, 0));
 		} catch (JSchException e) {
 			throw new JschRuntimeException(e);
 		}

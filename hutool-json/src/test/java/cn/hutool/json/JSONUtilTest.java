@@ -93,11 +93,11 @@ public class JSONUtilTest {
 		map.put("user", object.toString());
 
 		JSONObject json = JSONUtil.parseObj(map);
-		Assert.assertEquals("{\"name\":\"123123\",\"value\":\"\\\\\",\"value2\":\"<\\/\"}", json.get("user"));
-		Assert.assertEquals("{\"user\":\"{\\\"name\\\":\\\"123123\\\",\\\"value\\\":\\\"\\\\\\\\\\\",\\\"value2\\\":\\\"<\\\\/\\\"}\"}", json.toString());
+		Assert.assertEquals("{\"name\":\"123123\",\"value\":\"\\\\\",\"value2\":\"</\"}", json.get("user"));
+		Assert.assertEquals("{\"user\":\"{\\\"name\\\":\\\"123123\\\",\\\"value\\\":\\\"\\\\\\\\\\\",\\\"value2\\\":\\\"</\\\"}\"}", json.toString());
 
 		JSONObject json2 = JSONUtil.parseObj(json.toString());
-		Assert.assertEquals("{\"name\":\"123123\",\"value\":\"\\\\\",\"value2\":\"<\\/\"}", json2.get("user"));
+		Assert.assertEquals("{\"name\":\"123123\",\"value\":\"\\\\\",\"value2\":\"</\"}", json2.get("user"));
 	}
 
 	/**
@@ -154,4 +154,13 @@ public class JSONUtilTest {
 		Assert.assertEquals("aa", json.get("name"));
 		Assert.assertEquals(1, json.get("gender"));
 	}
+
+	@Test
+	public void doubleTest(){
+		String json = "{\"test\": 12.00}";
+		final JSONObject jsonObject = JSONUtil.parseObj(json);
+		//noinspection BigDecimalMethodWithoutRoundingCalled
+		Assert.assertEquals("12.00", jsonObject.getBigDecimal("test").setScale(2).toString());
+	}
 }
+
